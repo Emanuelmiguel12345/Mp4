@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MP4toMP3 | Conversor Online</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="converter-card glassmorphism">
+            <div class="header">
+                <i class="fas fa-file-audio logo-icon"></i>
+                <h1>MP4 para MP3</h1>
+                <p class="subtitle">Converta seus vídeos em áudio rapidamente</p>
+            </div>
+            
+            <div class="upload-area" id="dropArea">
+                <div class="upload-content">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <p>Arraste e solte seu arquivo MP4 aqui</p>
+                    <span class="divider">ou</span>
+                    <button class="btn-select" id="selectFileBtn">Selecionar arquivo</button>
+                    <input type="file" id="fileInput" accept=".mp4" hidden>
+                </div>
+                <div class="file-info hidden" id="fileInfo">
+                    <i class="fas fa-file-video file-icon"></i>
+                    <div class="file-details">
+                        <span class="file-name" id="fileName">Arquivo.mp4</span>
+                        <span class="file-size" id="fileSize">0 MB</span>
+                    </div>
+                    <button class="btn-cancel" id="cancelBtn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="progress-container hidden" id="progressContainer">
+                <div class="progress-bar" id="progressBar"></div>
+                <span class="progress-text" id="progressText">Convertendo...</span>
+            </div>
+            
+            <button class="btn-convert hidden" id="convertBtn">
+                <i class="fas fa-cog"></i> Converter
+            </button>
+            
+            <button class="btn-download hidden" id="downloadBtn">
+                <i class="fas fa-download"></i> Baixar MP3
+            </button>
+            
+            <div class="info-box">
+                <i class="fas fa-info-circle info-icon"></i>
+                <p>Arquivos de até 100MB. A conversão ocorre no seu navegador - seus arquivos não são enviados para servidores.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
