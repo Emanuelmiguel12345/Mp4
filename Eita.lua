@@ -33,7 +33,7 @@ local THEME = {
 local SETTINGS = {
     CurrentTool = "Shovel1", 
     ToolsList = {"Shovel1", "Shovel2"}, -- Apenas pás conforme pedido
-    SafetyCooldown = 1.6 -- 1.6s para garantir (margem de erro do servidor)
+    SafetyCooldown = 2 -- 1.6s para garantir (margem de erro do servidor)
 }
 
 local State = {
