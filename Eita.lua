@@ -1,162 +1,185 @@
 --[[
-    💠 ABSOLUTE ZERO MINER v4.0 (Selector Edition)
-    "A precisão é a chave. Escolha sua ferramenta, domine o jogo."
+    🛡️ ONYX MINER v6.0 (SAFE GUARD EDITION)
+    "Segurança máxima. Mineração precisa."
     
-    [CHANGELOG v4.0]
-    > Adicionado Sistema de Seleção de Pá (Dropdown)
-    > Correção no algoritmo de busca de ferramentas
-    > UI Reajustada para acomodar o menu
+    [CHANGELOG]
+    > REMOVIDO: Espadas e Picaretas (Apenas Shovels)
+    > ADICIONADO: Sistema Anti-Ban (Cooldown estrito de 1.6s)
+    > Lógica de clique humanizada
 ]]
 
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- // ⚙️ CONFIGURAÇÃO //
-local SETTINGS = {
-    TargetTool = "Shovel1",     -- Padrão inicial
-    AvailableTools = {"Shovel1", "Shovel2"}, -- Lista de pás
-    ClickDelay = 1.5,
-    Theme = {
-        Main = Color3.fromRGB(15, 15, 20),
-        Accent = Color3.fromRGB(0, 255, 170), -- Cyber Green
-        Text = Color3.fromRGB(240, 240, 240),
-        Stroke = Color3.fromRGB(50, 50, 60),
-        Dropdown = Color3.fromRGB(25, 25, 30)
-    }
+-- // 🎨 CONFIGURAÇÃO & TEMA //
+local THEME = {
+    Background = Color3.fromRGB(20, 20, 25),
+    Header = Color3.fromRGB(25, 25, 30),
+    Accent = Color3.fromRGB(0, 200, 255), -- Azul Seguro
+    Text = Color3.fromRGB(245, 245, 245),
+    SubText = Color3.fromRGB(150, 150, 160),
+    Success = Color3.fromRGB(50, 255, 140),
+    Warning = Color3.fromRGB(255, 200, 50),
+    Dropdown = Color3.fromRGB(30, 30, 35)
 }
 
--- // 📦 ESTADO GLOBAL //
+local SETTINGS = {
+    CurrentTool = "Shovel1", 
+    ToolsList = {"Shovel1", "Shovel2"}, -- Apenas pás conforme pedido
+    SafetyCooldown = 1.6 -- 1.6s para garantir (margem de erro do servidor)
+}
+
 local State = {
     Enabled = false,
-    LoopConnection = nil,
+    DropdownOpen = false,
     RenderConnection = nil,
-    DropdownOpen = false
+    LastClickTime = 0
 }
 
--- // 🎨 UI PROFISSIONAL //
-if CoreGui:FindFirstChild("AbsoluteZeroUI") then
-    CoreGui.AbsoluteZeroUI:Destroy()
-end
+-- // 🛠️ UI CONSTRUCTION //
+
+if CoreGui:FindFirstChild("OnyxSafeUI") then CoreGui.OnyxSafeUI:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AbsoluteZeroUI"
+ScreenGui.Name = "OnyxSafeUI"
 ScreenGui.Parent = CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
+-- :: Main Container ::
 local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainPanel"
-MainFrame.Size = UDim2.new(0, 260, 0, 190) -- Aumentado para caber o menu
-MainFrame.Position = UDim2.new(0.5, -130, 0.4, 0)
-MainFrame.BackgroundColor3 = SETTINGS.Theme.Main
+MainFrame.Name = "Main"
+MainFrame.Size = UDim2.new(0, 280, 0, 220)
+MainFrame.Position = UDim2.new(0.5, -140, 0.4, 0)
+MainFrame.BackgroundColor3 = THEME.Background
 MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = false
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.ClipsDescendants = false -- Importante para o Dropdown sair da caixa se precisar
 MainFrame.Parent = ScreenGui
 
--- Estilização Base
 local UICorner = Instance.new("UICorner", MainFrame)
-UICorner.CornerRadius = UDim.new(0, 14)
-local UIStroke = Instance.new("UIStroke", MainFrame)
-UIStroke.Color = SETTINGS.Theme.Stroke
-UIStroke.Thickness = 1.6
-UIStroke.Transparency = 0.5
+UICorner.CornerRadius = UDim.new(0, 12)
 
--- Título
+-- Sombra
+local Shadow = Instance.new("ImageLabel")
+Shadow.BackgroundTransparency = 1
+Shadow.Image = "rbxassetid://6015667347"
+Shadow.ImageColor3 = Color3.new(0,0,0)
+Shadow.ImageTransparency = 0.4
+Shadow.Size = UDim2.new(1, 40, 1, 40)
+Shadow.Position = UDim2.new(0, -20, 0, -20)
+Shadow.ZIndex = -1
+Shadow.Parent = MainFrame
+
+-- :: Header ::
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 45)
+Header.BackgroundColor3 = THEME.Header
+Header.BorderSizePixel = 0
+Header.Parent = MainFrame
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 12)
+
 local Title = Instance.new("TextLabel")
-Title.Text = "ABSOLUTE <font color=\"rgb(0,255,170)\">ZERO</font> v4"
+Title.Text = "ONYX <font color=\"rgb(0,200,255)\">SAFE</font> v6"
 Title.RichText = true
-Title.Font = Enum.Font.GothamBlack
-Title.TextSize = 20
-Title.TextColor3 = SETTINGS.Theme.Text
-Title.Size = UDim2.new(1, 0, 0.25, 0)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.TextColor3 = THEME.Text
+Title.Size = UDim2.new(1, -20, 1, 0)
+Title.Position = UDim2.new(0, 15, 0, 0)
+Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.BackgroundTransparency = 1
-Title.Parent = MainFrame
+Title.Parent = Header
 
--- Status Text
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Text = "AGUARDANDO..."
-StatusLabel.Font = Enum.Font.GothamMedium
-StatusLabel.TextSize = 11
-StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 160)
-StatusLabel.Size = UDim2.new(1, 0, 0, 15)
-StatusLabel.Position = UDim2.new(0, 0, 0.2, 0)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Parent = MainFrame
+local HFix = Instance.new("Frame")
+HFix.Size = UDim2.new(1, 0, 0, 10)
+HFix.Position = UDim2.new(0, 0, 1, -10)
+HFix.BackgroundColor3 = THEME.Header
+HFix.BorderSizePixel = 0
+HFix.Parent = Header
 
--- // 🔽 SISTEMA DE DROPDOWN (SELETOR) //
+-- Status
+local StatusText = Instance.new("TextLabel")
+StatusText.Text = "STANDBY"
+StatusText.Font = Enum.Font.GothamMedium
+StatusText.TextSize = 10
+StatusText.TextColor3 = THEME.SubText
+StatusText.Size = UDim2.new(0, 100, 1, 0)
+StatusText.Position = UDim2.new(1, -110, 0, 0)
+StatusText.TextXAlignment = Enum.TextXAlignment.Right
+StatusText.BackgroundTransparency = 1
+StatusText.Parent = Header
+
+-- :: Dropdown ::
 local DropdownBtn = Instance.new("TextButton")
-DropdownBtn.Name = "DropdownBtn"
-DropdownBtn.Size = UDim2.new(0.85, 0, 0.18, 0)
-DropdownBtn.Position = UDim2.new(0.075, 0, 0.35, 0)
-DropdownBtn.BackgroundColor3 = SETTINGS.Theme.Dropdown
-DropdownBtn.Text = "Ferramenta: " .. SETTINGS.TargetTool
-DropdownBtn.Font = Enum.Font.GothamBold
-DropdownBtn.TextColor3 = SETTINGS.Theme.Text
-DropdownBtn.TextSize = 12
-DropdownBtn.AutoButtonColor = true
+DropdownBtn.Size = UDim2.new(0.9, 0, 0, 35)
+DropdownBtn.Position = UDim2.new(0.05, 0, 0.3, 0)
+DropdownBtn.BackgroundColor3 = THEME.Dropdown
+DropdownBtn.Text = "Ferramenta: " .. SETTINGS.CurrentTool
+DropdownBtn.TextColor3 = THEME.Text
+DropdownBtn.Font = Enum.Font.GothamMedium
+DropdownBtn.TextSize = 13
+DropdownBtn.AutoButtonColor = false
 DropdownBtn.Parent = MainFrame
 
-local DCorner = Instance.new("UICorner", DropdownBtn)
-DCorner.CornerRadius = UDim.new(0, 6)
+Instance.new("UICorner", DropdownBtn).CornerRadius = UDim.new(0, 8)
 local DStroke = Instance.new("UIStroke", DropdownBtn)
-DStroke.Color = SETTINGS.Theme.Stroke
+DStroke.Color = Color3.fromRGB(50, 50, 60)
 DStroke.Thickness = 1
 
-local DropdownList = Instance.new("Frame")
-DropdownList.Name = "List"
-DropdownList.Size = UDim2.new(1, 0, 0, 0) -- Começa fechado
-DropdownList.Position = UDim2.new(0, 0, 1.1, 0)
-DropdownList.BackgroundColor3 = SETTINGS.Theme.Main
-DropdownList.BorderSizePixel = 0
-DropdownList.Visible = false
-DropdownList.ZIndex = 5
-DropdownList.Parent = DropdownBtn
+local DropList = Instance.new("Frame")
+DropList.Size = UDim2.new(0.9, 0, 0, 0)
+DropList.Position = UDim2.new(0.05, 0, 0.48, 0)
+DropList.BackgroundColor3 = THEME.Dropdown
+DropList.Visible = false
+DropList.ZIndex = 5
+DropList.Parent = MainFrame
+Instance.new("UICorner", DropList).CornerRadius = UDim.new(0, 8)
 
-local DListCorner = Instance.new("UICorner", DropdownList)
-DListCorner.CornerRadius = UDim.new(0, 6)
-local DListStroke = Instance.new("UIStroke", DropdownList)
-DListStroke.Color = SETTINGS.Theme.Accent
-DListStroke.Thickness = 1
-
-local ListLayout = Instance.new("UIListLayout", DropdownList)
+local ListLayout = Instance.new("UIListLayout", DropList)
 ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-ListLayout.Padding = UDim.new(0, 2)
 
--- Função para criar opções do Dropdown
-local function RefreshDropdown()
-    for _, child in pairs(DropdownList:GetChildren()) do
-        if child:IsA("TextButton") then child:Destroy() end
+-- :: Toggle Button ::
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0.9, 0, 0, 45)
+ToggleBtn.Position = UDim2.new(0.05, 0, 0.75, 0)
+ToggleBtn.BackgroundColor3 = THEME.Dropdown
+ToggleBtn.Text = "INICIAR (SAFE MODE)"
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 14
+ToggleBtn.TextColor3 = THEME.SubText
+ToggleBtn.AutoButtonColor = false
+ToggleBtn.Parent = MainFrame
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 8)
+
+-- // 🧠 LÓGICA DROPDOWN //
+local function UpdateDropdown()
+    for _, c in pairs(DropList:GetChildren()) do
+        if c:IsA("TextButton") then c:Destroy() end
     end
-    
-    for i, toolName in ipairs(SETTINGS.AvailableTools) do
-        local OptBtn = Instance.new("TextButton")
-        OptBtn.Size = UDim2.new(1, 0, 0, 30)
-        OptBtn.BackgroundColor3 = SETTINGS.Theme.Dropdown
-        OptBtn.Text = toolName
-        OptBtn.TextColor3 = SETTINGS.Theme.Text
-        OptBtn.Font = Enum.Font.GothamMedium
-        OptBtn.TextSize = 12
-        OptBtn.ZIndex = 6
-        OptBtn.Parent = DropdownList
-        
-        local OCorner = Instance.new("UICorner", OptBtn)
-        OCorner.CornerRadius = UDim.new(0, 4)
-        
-        OptBtn.MouseButton1Click:Connect(function()
-            SETTINGS.TargetTool = toolName
+    for _, toolName in ipairs(SETTINGS.ToolsList) do
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 0, 30)
+        btn.BackgroundTransparency = 1
+        btn.Text = toolName
+        btn.TextColor3 = THEME.Text
+        btn.Font = Enum.Font.Gotham
+        btn.TextSize = 12
+        btn.ZIndex = 6
+        btn.Parent = DropList
+        btn.MouseButton1Click:Connect(function()
+            SETTINGS.CurrentTool = toolName
             DropdownBtn.Text = "Ferramenta: " .. toolName
-            -- Fecha o menu
             State.DropdownOpen = false
-            DropdownList.Visible = false
-            TweenService:Create(DropdownList, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, 0)}):Play()
+            DropList.Visible = false
+            TweenService:Create(DropList, TweenInfo.new(0.2), {Size = UDim2.new(0.9, 0, 0, 0)}):Play()
         end)
     end
 end
@@ -164,156 +187,145 @@ end
 DropdownBtn.MouseButton1Click:Connect(function()
     State.DropdownOpen = not State.DropdownOpen
     if State.DropdownOpen then
-        RefreshDropdown()
-        DropdownList.Visible = true
-        TweenService:Create(DropdownList, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(1, 0, 0, 65)}):Play()
+        UpdateDropdown()
+        DropList.Visible = true
+        TweenService:Create(DropList, TweenInfo.new(0.3), {Size = UDim2.new(0.9, 0, 0, 60)}):Play() -- Altura ajustada para 2 itens
     else
-        TweenService:Create(DropdownList, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, 0)}):Play()
+        TweenService:Create(DropList, TweenInfo.new(0.2), {Size = UDim2.new(0.9, 0, 0, 0)}):Play()
         task.wait(0.2)
-        DropdownList.Visible = false
+        DropList.Visible = false
     end
 end)
 
--- // BOTÃO INICIAR //
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Size = UDim2.new(0.85, 0, 0.25, 0)
-ToggleBtn.Position = UDim2.new(0.075, 0, 0.65, 0) -- Ajustado posição
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-ToggleBtn.Text = "INICIAR SISTEMA"
-ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-ToggleBtn.TextSize = 14
-ToggleBtn.AutoButtonColor = false
-ToggleBtn.Parent = MainFrame
-
-local BtnCorner = Instance.new("UICorner", ToggleBtn)
-BtnCorner.CornerRadius = UDim.new(0, 8)
-
--- // LÓGICA CORE //
-
-local function Notify(msg, color)
-    StatusLabel.Text = msg
-    StatusLabel.TextColor3 = color or SETTINGS.Theme.Text
-end
-
-local function GetShovel()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    
-    -- Busca exata pelo nome selecionado
-    local tool = char:FindFirstChild(SETTINGS.TargetTool)
-    if tool then return tool end
-    
-    local bp = LocalPlayer:WaitForChild("Backpack")
-    tool = bp:FindFirstChild(SETTINGS.TargetTool)
-    if tool then return tool end
-    
-    return nil
-end
+-- // ⚡ LÓGICA SEGURA //
 
 local function ClickScreen()
     local vp = workspace.CurrentCamera.ViewportSize
     VirtualInputManager:SendMouseButtonEvent(vp.X/2, vp.Y/2, 0, true, game, 1)
-    task.wait() 
+    task.wait(0.05) 
     VirtualInputManager:SendMouseButtonEvent(vp.X/2, vp.Y/2, 0, false, game, 1)
 end
 
-local function MagnetLogic()
+local function GetTool()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local tool = char:FindFirstChild(SETTINGS.CurrentTool)
+    if tool then return tool end
+    return LocalPlayer:WaitForChild("Backpack"):FindFirstChild(SETTINGS.CurrentTool)
+end
+
+local function CoreLogic()
     if not State.Enabled then return end
     
-    local tool = GetShovel()
+    local tool = GetTool()
     
     -- 1. Equipar
     if tool and tool.Parent ~= LocalPlayer.Character then
-        Notify("Equipando: " .. SETTINGS.TargetTool, SETTINGS.Theme.Text)
+        StatusText.Text = "EQUIPANDO..."
+        StatusText.TextColor3 = THEME.Warning
         tool.Parent = LocalPlayer.Character
         return
     end
-
-    if not tool then
-        Notify("ERRO: " .. SETTINGS.TargetTool .. " não achada!", SETTINGS.Theme.Error)
-        return
+    
+    if not tool then 
+        StatusText.Text = "NO TOOL"
+        StatusText.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return 
     end
 
-    -- 2. Busca pela UI de Minigame
+    -- 2. Detectar UI
     local DigUI = PlayerGui:FindFirstChild("DigUI", true)
-    
-    -- Fallback: Procura dentro da ferramenta se não achar no PlayerGui
     if not DigUI and tool:FindFirstChild("Handle") then
         local uiInTool = tool.Handle:FindFirstChild("DigUI")
         if uiInTool then DigUI = uiInTool end
     end
 
     if not DigUI or not DigUI.Parent then
-        tool:Activate()
-        Notify("Ativando Pá...", SETTINGS.Theme.Text)
+        -- Se não tem UI aberta, tenta ativar a ferramenta
+        -- Mas respeitando um cooldown básico para não spammar equip
+        if tick() - State.LastClickTime >= 0.5 then
+             tool:Activate()
+             StatusText.Text = "BUSCANDO..."
+             StatusText.TextColor3 = THEME.SubText
+        end
         return
     end
 
-    -- 3. Lógica do Magnetismo (Movimento do Frame)
+    -- 3. MINIGAME ATIVO
     local Movimento = DigUI:FindFirstChild("Movimento", true)
     local WinFrame = DigUI:FindFirstChild("WinFrame", true)
 
     if Movimento and WinFrame then
-        Notify("MINERANDO...", SETTINGS.Theme.Accent)
-        
-        -- Cola o WinFrame no Movimento
+        -- Magnetismo Visual (Sempre ativo no render, aqui só confirmamos)
         WinFrame.Position = Movimento.Position
         
-        -- Clica
-        ClickScreen()
+        -- CHECAGEM DE SEGURANÇA (COOLDOWN)
+        local TimeSinceLast = tick() - State.LastClickTime
         
-        -- Tenta disparar evento remoto para garantir
-        local remote = ReplicatedStorage:FindFirstChild("DigControl") or ReplicatedStorage:FindFirstChild("Dig")
-        if remote and remote:IsA("RemoteEvent") then
-            pcall(function() remote:FireServer("click", tool, 0) end)
+        if TimeSinceLast >= SETTINGS.SafetyCooldown then
+            StatusText.Text = "CLICK (SAFE)"
+            StatusText.TextColor3 = THEME.Success
+            
+            ClickScreen()
+            
+            -- Tenta evento remoto de forma segura
+            local remote = ReplicatedStorage:FindFirstChild("DigControl") or ReplicatedStorage:FindFirstChild("Dig")
+            if remote and remote:IsA("RemoteEvent") then
+                pcall(function() remote:FireServer("click", tool, 0) end)
+            end
+            
+            State.LastClickTime = tick()
+        else
+            -- Mostra quanto tempo falta (Visual Feedback)
+            local remaining = math.ceil((SETTINGS.SafetyCooldown - TimeSinceLast) * 10) / 10
+            StatusText.Text = "WAIT: " .. tostring(remaining) .. "s"
+            StatusText.TextColor3 = THEME.Warning
         end
-    else
-        Notify("Buscando UI...", SETTINGS.Theme.Text)
     end
 end
 
 -- // CONTROLE //
-
-local function StartFarm()
-    State.Enabled = true
-    
-    TweenService:Create(ToggleBtn, TweenInfo.new(0.3), {BackgroundColor3 = SETTINGS.Theme.Accent, TextColor3 = Color3.new(0,0,0)}):Play()
-    ToggleBtn.Text = "PARAR"
-    
-    task.spawn(function()
-        while State.Enabled do
-            MagnetLogic()
-            task.wait(SETTINGS.ClickDelay)
-        end
-    end)
-    
-    -- Render Loop para visual suave
-    State.RenderConnection = RunService.RenderStepped:Connect(function()
-        if not State.Enabled then return end
-        local DigUI = PlayerGui:FindFirstChild("DigUI", true)
-        if DigUI then
-            local Movimento = DigUI:FindFirstChild("Movimento", true)
-            local WinFrame = DigUI:FindFirstChild("WinFrame", true)
-            if Movimento and WinFrame then
-                WinFrame.Position = Movimento.Position
+local function SetState(bool)
+    State.Enabled = bool
+    if bool then
+        State.LastClickTime = 0 -- Reseta timer
+        TweenService:Create(ToggleBtn, TweenInfo.new(0.3), {BackgroundColor3 = THEME.Accent, TextColor3 = Color3.new(0,0,0)}):Play()
+        ToggleBtn.Text = "PARAR SISTEMA"
+        TweenService:Create(Shadow, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {ImageColor3 = THEME.Accent}):Play()
+        
+        -- Loop Lógico (Roda rápido para checar estado, mas clica devagar)
+        task.spawn(function()
+            while State.Enabled do
+                CoreLogic()
+                task.wait(0.1) -- Checagem leve
             end
+        end)
+        
+        -- Loop Visual (Magnetismo fluído sem ban)
+        State.RenderConnection = RunService.RenderStepped:Connect(function()
+            if not State.Enabled then return end
+            local DigUI = PlayerGui:FindFirstChild("DigUI", true)
+            if DigUI then
+                local Movimento = DigUI:FindFirstChild("Movimento", true)
+                local WinFrame = DigUI:FindFirstChild("WinFrame", true)
+                if Movimento and WinFrame then
+                    WinFrame.Position = Movimento.Position
+                end
+            end
+        end)
+    else
+        TweenService:Create(ToggleBtn, TweenInfo.new(0.3), {BackgroundColor3 = THEME.Dropdown, TextColor3 = THEME.SubText}):Play()
+        ToggleBtn.Text = "INICIAR (SAFE MODE)"
+        StatusText.Text = "STANDBY"
+        StatusText.TextColor3 = THEME.SubText
+        TweenService:Create(Shadow, TweenInfo.new(0.5), {ImageColor3 = Color3.new(0,0,0)}):Play()
+        
+        if State.RenderConnection then
+            State.RenderConnection:Disconnect()
+            State.RenderConnection = nil
         end
-    end)
-end
-
-local function StopFarm()
-    State.Enabled = false
-    TweenService:Create(ToggleBtn, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(30,30,35), TextColor3 = Color3.fromRGB(200,200,200)}):Play()
-    ToggleBtn.Text = "INICIAR SISTEMA"
-    Notify("Parado", SETTINGS.Theme.Error)
-    
-    if State.RenderConnection then
-        State.RenderConnection:Disconnect()
-        State.RenderConnection = nil
     end
 end
 
-ToggleBtn.MouseButton1Click:Connect(function()
-    if State.Enabled then StopFarm() else StartFarm() end
-end)
+ToggleBtn.MouseButton1Click:Connect(function() SetState(not State.Enabled) end)
+UpdateDropdown()
