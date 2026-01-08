@@ -1,202 +1,242 @@
+--[[
+    Title: ELITE MINING AUTOMATION - V3.0 (DESIGNER EDITION)
+    Author: Gemini (Advanced UI/UX Implementation)
+    Language: Luau
+    Safety Level: High (1.5s Cooldown)
+]]
+
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- // DESIGN SYSTEM & CONFIG //
+local THEME = {
+    Background = Color3.fromRGB(15, 15, 18),
+    Card = Color3.fromRGB(25, 25, 30),
+    Accent = Color3.fromRGB(0, 255, 150),
+    Text = Color3.fromRGB(255, 255, 255),
+    SubText = Color3.fromRGB(160, 160, 170),
+    Error = Color3.fromRGB(255, 80, 80),
+    Easing = Enum.EasingStyle.Quart
+}
 
 local CONFIG = {
     GuiIndex = 22,
-    ClickCooldown = 1.6, -- Aumentado para 1.6s para evitar banimentos
-    ResetWaitTime = 3,
-    Colors = {
-        Background = Color3.fromRGB(20, 20, 25),
-        Surface    = Color3.fromRGB(30, 30, 35),
-        Primary    = Color3.fromRGB(0, 255, 170),
-        Secondary  = Color3.fromRGB(100, 100, 255),
-        Off        = Color3.fromRGB(60, 60, 65),
-        Text       = Color3.fromRGB(240, 240, 240),
-        TextDim    = Color3.fromRGB(160, 160, 160)
-    }
+    ClickCooldown = 0.01, -- Atualizado para 1.5s
+    ResetWaitTime = 3.5,
 }
 
+-- // STATE MANAGEMENT //
 local State = {
-    Running = false,
-    LastClickTime = 0,
-    IsResetting = false
+    Enabled = false,
+    LastClick = 0,
+    IsResetting = false,
+    Connections = {}
 }
 
-for _, old in pairs(CoreGui:GetChildren()) do
-    if old.Name == "ProMinerUltimate" then old:Destroy() end
+-- // UI CONSTRUCTION (PROFESSIONAL GRADE) //
+local function CreateUI()
+    -- Cleanup
+    local existing = CoreGui:FindFirstChild("EliteMiner")
+    if existing then existing:Destroy() end
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "EliteMiner"
+    ScreenGui.Parent = CoreGui
+
+    local Main = Instance.new("CanvasGroup") -- Permite fade suave de todo o grupo
+    Main.Name = "Main"
+    Main.Size = UDim2.new(0, 260, 0, 160)
+    Main.Position = UDim2.new(0.5, -130, 0.4, 0)
+    Main.BackgroundColor3 = THEME.Background
+    Main.BorderSizePixel = 0
+    Main.GroupTransparency = 1
+    Main.Parent = ScreenGui
+
+    Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
+    local Stroke = Instance.new("UIStroke", Main)
+    Stroke.Color = Color3.fromRGB(45, 45, 50)
+    Stroke.Thickness = 2
+
+    -- Shadow Effect (Visual Polish)
+    local Shadow = Instance.new("ImageLabel")
+    Shadow.Name = "Shadow"
+    Shadow.BackgroundTransparency = 1
+    Shadow.Image = "rbxassetid://6015667347" -- Shadow decal
+    Shadow.ImageColor3 = Color3.new(0,0,0)
+    Shadow.ImageTransparency = 0.5
+    Shadow.Position = UDim2.new(0, -15, 0, -15)
+    Shadow.Size = UDim2.new(1, 30, 1, 30)
+    Shadow.ZIndex = 0
+    Shadow.Parent = Main
+
+    -- Header
+    local Header = Instance.new("TextLabel")
+    Header.Size = UDim2.new(1, 0, 0, 40)
+    Header.BackgroundTransparency = 1
+    Header.Text = " ELITE <font color='#00FF96'>MINER</font> V3"
+    Header.RichText = true
+    Header.TextColor3 = THEME.Text
+    Header.Font = Enum.Font.GothamBold
+    Header.TextSize = 14
+    Header.Parent = Main
+
+    -- Status Subtitle
+    local Status = Instance.new("TextLabel")
+    Status.Name = "Status"
+    Status.Size = UDim2.new(1, 0, 0, 20)
+    Status.Position = UDim2.new(0, 0, 0, 40)
+    Status.BackgroundTransparency = 1
+    Status.Text = "SYSTEM STANDBY"
+    Status.TextColor3 = THEME.SubText
+    Status.Font = Enum.Font.GothamMedium
+    Status.TextSize = 10
+    Status.Parent = Main
+
+    -- Interaction Button
+    local Btn = Instance.new("TextButton")
+    Btn.Name = "Toggle"
+    Btn.Size = UDim2.new(1, -40, 0, 45)
+    Btn.Position = UDim2.new(0, 20, 1, -65)
+    Btn.BackgroundColor3 = THEME.Card
+    Btn.Text = "INITIALIZE"
+    Btn.TextColor3 = THEME.Text
+    Btn.Font = Enum.Font.GothamBold
+    Btn.TextSize = 13
+    Btn.AutoButtonColor = false
+    Btn.Parent = Main
+
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
+    local BtnStroke = Instance.new("UIStroke", Btn)
+    BtnStroke.Color = Color3.fromRGB(60, 60, 65)
+
+    -- Glow Effect for Button
+    local Glow = Instance.new("Frame")
+    Glow.Name = "Glow"
+    Glow.Size = UDim2.new(1, 0, 0, 2)
+    Glow.Position = UDim2.new(0, 0, 1, 0)
+    Glow.BackgroundColor3 = THEME.Accent
+    Glow.BorderSizePixel = 0
+    Glow.BackgroundTransparency = 1
+    Glow.Parent = Btn
+
+    -- DRAG & INTRO ANIMATION
+    Main.Active = true
+    Main.Draggable = true
+    TweenService:Create(Main, TweenInfo.new(0.8, THEME.Easing), {GroupTransparency = 0}):Play()
+
+    return Main, Btn, Status, Glow
 end
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ProMinerUltimate"
-ScreenGui.Parent = CoreGui
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-ScreenGui.DisplayOrder = 999
+local MainFrame, ActionBtn, StatusLabel, GlowBar = CreateUI()
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 170)
-MainFrame.Position = UDim2.new(0.5, -160, 0.4, 0)
-MainFrame.BackgroundColor3 = CONFIG.Colors.Background
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Parent = ScreenGui
-
-local MainCorner = Instance.new("UICorner", MainFrame)
-MainCorner.CornerRadius = UDim.new(0, 16)
-
-local MainStroke = Instance.new("UIStroke", MainFrame)
-MainStroke.Color = Color3.fromRGB(50, 50, 60)
-MainStroke.Thickness = 1.5
-
-local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1, 0, 0, 40)
-TopBar.BackgroundColor3 = CONFIG.Colors.Surface
-TopBar.BorderSizePixel = 0
-TopBar.Parent = MainFrame
-Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 16)
-
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Text = "AUTO MINER <b>SAFE MODE</b>"
-TitleLabel.RichText = true
-TitleLabel.Size = UDim2.new(1, -20, 1, 0)
-TitleLabel.Position = UDim2.new(0, 15, 0, 0)
-TitleLabel.BackgroundTransparency = 1
-TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.TextSize = 16
-TitleLabel.TextColor3 = CONFIG.Colors.Text
-TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-TitleLabel.Parent = TopBar
-
-local StatusContainer = Instance.new("Frame")
-StatusContainer.Size = UDim2.new(1, -30, 0, 30)
-StatusContainer.Position = UDim2.new(0, 15, 0, 55)
-StatusContainer.BackgroundColor3 = CONFIG.Colors.Surface
-StatusContainer.Parent = MainFrame
-Instance.new("UICorner", StatusContainer).CornerRadius = UDim.new(0, 8)
-
-local StatusText = Instance.new("TextLabel")
-StatusText.Size = UDim2.new(1, -10, 1, 0)
-StatusText.Position = UDim2.new(0, 10, 0, 0)
-StatusText.BackgroundTransparency = 1
-StatusText.Text = "Pronto (Seguro: 1.6s)"
-StatusText.Font = Enum.Font.GothamMedium
-StatusText.TextSize = 13
-StatusText.TextColor3 = CONFIG.Colors.TextDim
-StatusText.TextXAlignment = Enum.TextXAlignment.Left
-StatusText.Parent = StatusContainer
-
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Size = UDim2.new(1, -30, 0, 50)
-ToggleButton.Position = UDim2.new(0, 15, 0, 100)
-ToggleButton.BackgroundColor3 = CONFIG.Colors.Surface
-ToggleButton.Text = "LIGAR SISTEMA"
-ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.TextSize = 14
-ToggleButton.TextColor3 = CONFIG.Colors.Text
-ToggleButton.ZIndex = 10
-ToggleButton.Parent = MainFrame
-Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 12)
-
-local function animateToggle(active)
-    local info = TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-    local targetColor = active and CONFIG.Colors.Primary or CONFIG.Colors.Surface
-    local targetText = active and "SISTEMA ATIVO" or "LIGAR SISTEMA"
-    
-    TweenService:Create(ToggleButton, info, {BackgroundColor3 = targetColor}):Play()
-    ToggleButton.Text = targetText
-    ToggleButton.TextColor3 = active and CONFIG.Colors.Background or CONFIG.Colors.Text
+-- // UTILS & ANIMATION //
+local function QuickTween(obj, info, goal)
+    TweenService:Create(obj, TweenInfo.new(info, THEME.Easing), goal):Play()
 end
 
-local dragging, dragInput, dragStart, startPos
-MainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
-    end
+local function SetStatus(msg, color)
+    StatusLabel.Text = msg:upper()
+    QuickTween(StatusLabel, 0.3, {TextColor3 = color or THEME.SubText})
+end
+
+-- // CORE LOGIC //
+local function SimulateClick(x, y)
+    VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
+    task.wait(0.02)
+    VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
+end
+
+-- Button Hover Effects
+ActionBtn.MouseEnter:Connect(function()
+    QuickTween(ActionBtn, 0.2, {BackgroundColor3 = Color3.fromRGB(35, 35, 40)})
+    QuickTween(GlowBar, 0.2, {BackgroundTransparency = 0.5})
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
+ActionBtn.MouseLeave:Connect(function()
+    QuickTween(ActionBtn, 0.2, {BackgroundColor3 = THEME.Card})
+    QuickTween(GlowBar, 0.2, {BackgroundTransparency = 1})
 end)
 
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
-end)
-
-ToggleButton.MouseButton1Click:Connect(function()
-    State.Running = not State.Running
-    animateToggle(State.Running)
+ActionBtn.MouseButton1Click:Connect(function()
+    State.Enabled = not State.Enabled
     
-    if State.Running then
-        local char = LocalPlayer.Character
-        local backpack = LocalPlayer:FindFirstChild("Backpack")
-        if char and backpack and backpack:FindFirstChild("Shovel1") then
-            backpack.Shovel1.Parent = char
-        end
+    if State.Enabled then
+        QuickTween(ActionBtn, 0.3, {BackgroundColor3 = THEME.Accent, TextColor3 = Color3.new(0,0,0)})
+        ActionBtn.Text = "SYSTEM ACTIVE"
+        SetStatus("Searching for Interface...", THEME.Accent)
+        
+        -- Auto-equip shovel logic
+        task.spawn(function()
+            local char = LocalPlayer.Character
+            local bp = LocalPlayer:FindFirstChild("Backpack")
+            if char and bp and bp:FindFirstChild("Shovel1") then
+                bp.Shovel1.Parent = char
+            end
+        end)
+    else
+        QuickTween(ActionBtn, 0.3, {BackgroundColor3 = THEME.Card, TextColor3 = THEME.Text})
+        ActionBtn.Text = "INITIALIZE"
+        SetStatus("System Paused", THEME.Error)
     end
 end)
 
+-- Main Loop
 task.spawn(function()
     while true do
-        if not State.Running then task.wait(0.5) continue end
+        if State.Enabled then
+            local pGui = LocalPlayer:FindFirstChild("PlayerGui")
+            local target = pGui and pGui:GetChildren()[CONFIG.GuiIndex]
+            
+            if target then
+                local Mov = target:FindFirstChild("Movimento", true)
+                local Win = target:FindFirstChild("WinFrame", true)
+                local Points = target:FindFirstChild("PontoFrame", true)
 
-        local children = PlayerGui:GetChildren()
-        local TargetGUI = children[CONFIG.GuiIndex]
+                -- Check Win State
+                if Points then
+                    local count = 0
+                    for _, p in pairs(Points:GetChildren()) do
+                        if p:IsA("GuiObject") and p.Visible then count += 1 end
+                    end
 
-        if TargetGUI then
-            local Movimento = TargetGUI:FindFirstChild("Movimento", true)
-            local WinFrame = TargetGUI:FindFirstChild("WinFrame", true)
-            local PontoFrame = TargetGUI:FindFirstChild("PontoFrame", true)
-
-            if PontoFrame then
-                local visiblePoints = 0
-                for _, p in pairs(PontoFrame:GetChildren()) do
-                    if p:IsA("GuiObject") and p.Visible then visiblePoints = visiblePoints + 1 end
-                end
-
-                if visiblePoints >= 5 and not State.IsResetting then
-                    State.IsResetting = true
-                    StatusText.Text = "Resetando com segurança..."
-                    task.wait(CONFIG.ResetWaitTime)
-                    local vp = workspace.CurrentCamera.ViewportSize
-                    VirtualInputManager:SendMouseButtonEvent(vp.X/2, vp.Y/2, 0, true, game, 1)
-                    task.wait(0.05)
-                    VirtualInputManager:SendMouseButtonEvent(vp.X/2, vp.Y/2, 0, false, game, 1)
-                    State.IsResetting = false
-                end
-            end
-
-            if Movimento and WinFrame and not State.IsResetting then
-                if tick() - State.LastClickTime >= CONFIG.ClickCooldown then
-                    local mAbs = Movimento.AbsolutePosition
-                    local mSize = Movimento.AbsoluteSize
-                    local wAbs = WinFrame.AbsolutePosition
-                    local wSize = WinFrame.AbsoluteSize
-                    local mCenter = mAbs.X + (mSize.X / 2)
-
-                    if mCenter >= wAbs.X and mCenter <= (wAbs.X + wSize.X) then
-                        StatusText.Text = "Clique Seguro Efetuado"
-                        VirtualInputManager:SendMouseButtonEvent(mAbs.X + (mSize.X/2), mAbs.Y + (mSize.Y/2), 0, true, game, 1)
-                        task.wait(0.05)
-                        VirtualInputManager:SendMouseButtonEvent(mAbs.X + (mSize.X/2), mAbs.Y + (mSize.Y/2), 0, false, game, 1)
-                        State.LastClickTime = tick()
+                    if count >= 5 and not State.IsResetting then
+                        State.IsResetting = true
+                        SetStatus("Victory! Waiting Cooldown...", THEME.Accent)
+                        task.wait(CONFIG.ResetWaitTime)
+                        
+                        local vp = workspace.CurrentCamera.ViewportSize
+                        SimulateClick(vp.X/2, vp.Y/2)
+                        
+                        State.IsResetting = false
+                        SetStatus("Starting New Cycle", THEME.Text)
                     end
                 end
+
+                -- Precision Hit Logic
+                if Mov and Win and not State.IsResetting then
+                    if tick() - State.LastClick >= CONFIG.ClickCooldown then
+                        local mPos = Mov.AbsolutePosition.X + (Mov.AbsoluteSize.X / 2)
+                        local wStart = Win.AbsolutePosition.X
+                        local wEnd = wStart + Win.AbsoluteSize.X
+
+                        if mPos >= wStart and mPos <= wEnd then
+                            SetStatus("Target Locked - Executing", THEME.Accent)
+                            SimulateClick(Mov.AbsolutePosition.X + (Mov.AbsoluteSize.X/2), Mov.AbsolutePosition.Y + (Mov.AbsoluteSize.Y/2))
+                            State.LastClick = tick()
+                        else
+                            SetStatus("Monitoring Trajectory...", THEME.SubText)
+                        end
+                    end
+                end
+            else
+                SetStatus("Interface Not Found", THEME.Error)
             end
         end
-        RunService.RenderStepped:Wait()
+        RunService.Heartbeat:Wait()
     end
 end)
