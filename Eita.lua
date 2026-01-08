@@ -10,7 +10,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 local CONFIG = {
     GuiIndex = 22,
-    ClickCooldown = 0.1, 
+    ClickCooldown = 1.5, 
     ResetWaitTime = 3,
     Colors = {
         Background = Color3.fromRGB(20, 20, 25),
