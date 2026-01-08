@@ -26,7 +26,7 @@ local THEME = {
 
 local CONFIG = {
     GuiIndex = 22,
-    ClickCooldown = 0.01, -- Atualizado para 1.5s
+    ClickCooldown = 1.5, -- Atualizado para 1.5s
     ResetWaitTime = 3.5,
 }
 
