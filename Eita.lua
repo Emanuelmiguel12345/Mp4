@@ -10,7 +10,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 local CONFIG = {
     GuiIndex = 22,
-    ClickCooldown = 1.6, 
+    ClickCooldown = 1.6, -- Aumentado para 1.6s para evitar banimentos
     ResetWaitTime = 3,
     Colors = {
         Background = Color3.fromRGB(20, 20, 25),
@@ -19,8 +19,7 @@ local CONFIG = {
         Secondary  = Color3.fromRGB(100, 100, 255),
         Off        = Color3.fromRGB(60, 60, 65),
         Text       = Color3.fromRGB(240, 240, 240),
-        TextDim    = Color3.fromRGB(160, 160, 160),
-        Error      = Color3.fromRGB(255, 80, 80)
+        TextDim    = Color3.fromRGB(160, 160, 160)
     }
 }
 
@@ -64,7 +63,7 @@ TopBar.Parent = MainFrame
 Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 16)
 
 local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Text = "AUTO MINER <b>v2.2</b>"
+TitleLabel.Text = "AUTO MINER <b>SAFE MODE</b>"
 TitleLabel.RichText = true
 TitleLabel.Size = UDim2.new(1, -20, 1, 0)
 TitleLabel.Position = UDim2.new(0, 15, 0, 0)
@@ -86,7 +85,7 @@ local StatusText = Instance.new("TextLabel")
 StatusText.Size = UDim2.new(1, -10, 1, 0)
 StatusText.Position = UDim2.new(0, 10, 0, 0)
 StatusText.BackgroundTransparency = 1
-StatusText.Text = "Pronto"
+StatusText.Text = "Pronto (Seguro: 1.6s)"
 StatusText.Font = Enum.Font.GothamMedium
 StatusText.TextSize = 13
 StatusText.TextColor3 = CONFIG.Colors.TextDim
@@ -97,7 +96,7 @@ local ToggleButton = Instance.new("TextButton")
 ToggleButton.Size = UDim2.new(1, -30, 0, 50)
 ToggleButton.Position = UDim2.new(0, 15, 0, 100)
 ToggleButton.BackgroundColor3 = CONFIG.Colors.Surface
-ToggleButton.Text = "DESATIVADO"
+ToggleButton.Text = "LIGAR SISTEMA"
 ToggleButton.Font = Enum.Font.GothamBold
 ToggleButton.TextSize = 14
 ToggleButton.TextColor3 = CONFIG.Colors.Text
@@ -108,7 +107,7 @@ Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 12)
 local function animateToggle(active)
     local info = TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
     local targetColor = active and CONFIG.Colors.Primary or CONFIG.Colors.Surface
-    local targetText = active and "ATIVADO" or "DESATIVADO"
+    local targetText = active and "SISTEMA ATIVO" or "LIGAR SISTEMA"
     
     TweenService:Create(ToggleButton, info, {BackgroundColor3 = targetColor}):Play()
     ToggleButton.Text = targetText
@@ -170,11 +169,11 @@ task.spawn(function()
 
                 if visiblePoints >= 5 and not State.IsResetting then
                     State.IsResetting = true
-                    StatusText.Text = "Vitoria! Resetando..."
+                    StatusText.Text = "Resetando com segurança..."
                     task.wait(CONFIG.ResetWaitTime)
                     local vp = workspace.CurrentCamera.ViewportSize
                     VirtualInputManager:SendMouseButtonEvent(vp.X/2, vp.Y/2, 0, true, game, 1)
-                    task.wait(1.60)
+                    task.wait(0.05)
                     VirtualInputManager:SendMouseButtonEvent(vp.X/2, vp.Y/2, 0, false, game, 1)
                     State.IsResetting = false
                 end
@@ -189,9 +188,9 @@ task.spawn(function()
                     local mCenter = mAbs.X + (mSize.X / 2)
 
                     if mCenter >= wAbs.X and mCenter <= (wAbs.X + wSize.X) then
-                        StatusText.Text = "Clicking!"
+                        StatusText.Text = "Clique Seguro Efetuado"
                         VirtualInputManager:SendMouseButtonEvent(mAbs.X + (mSize.X/2), mAbs.Y + (mSize.Y/2), 0, true, game, 1)
-                        task.wait(0.02)
+                        task.wait(0.05)
                         VirtualInputManager:SendMouseButtonEvent(mAbs.X + (mSize.X/2), mAbs.Y + (mSize.Y/2), 0, false, game, 1)
                         State.LastClickTime = tick()
                     end
