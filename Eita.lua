@@ -174,7 +174,7 @@ task.spawn(function()
                     task.wait(CONFIG.ResetWaitTime)
                     local vp = workspace.CurrentCamera.ViewportSize
                     VirtualInputManager:SendMouseButtonEvent(vp.X/2, vp.Y/2, 0, true, game, 1)
-                    task.wait(0.05)
+                    task.wait(1.60)
                     VirtualInputManager:SendMouseButtonEvent(vp.X/2, vp.Y/2, 0, false, game, 1)
                     State.IsResetting = false
                 end
