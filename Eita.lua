@@ -1,331 +1,641 @@
---[[
-    Title: PRO MINING AUTOMATION - EXPERT EDITION (UI/UX REDESIGN)
-    Author: Gemini (20 Years Exp Emulation)
-    Framework: Modern Luau + TweenService V2
-]]
-
+-- ================= BAN LIST =================
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-local CoreGui = game:GetService("CoreGui")
-
+local TeleportService = game:GetService("TeleportService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- // CONFIGURAÇÕES E ESTILO //
-local CONFIG = {
-    GuiIndex = 22,
-    ClickCooldown = 1.05, -- Otimizado
-    ResetWaitTime = 2.8,
-    SelectedTool = "Shovel1", -- Padrão
-    Colors = {
-        Background = Color3.fromRGB(18, 18, 22),
-        Panel = Color3.fromRGB(30, 30, 35),
-        Accent = Color3.fromRGB(0, 220, 130), -- Verde Tech
-        Inactive = Color3.fromRGB(60, 60, 65),
-        TextData = Color3.fromRGB(255, 255, 255),
-        TextDesc = Color3.fromRGB(160, 160, 170),
-        Error = Color3.fromRGB(255, 80, 80)
+local BannedPlayers = {
+    ["davittthu"] = true
+}
+
+if BannedPlayers[LocalPlayer.Name] then
+    LocalPlayer:Kick("Você está permanentemente banido de usar este script.")
+    return
+end
+
+-- ================= UI LIBRARY MELHORADA (REDz HUB MOD) =================
+-- Esta seção substitui o loadstring do pastebin por uma versão visualmente melhorada
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+
+local Configs_HUB = {
+    Hub = Color3.fromRGB(20, 20, 25), -- Cor de fundo mais escura/azulada
+    Corner = UDim.new(0, 8), -- Bordas mais arredondadas
+    Stroke = Color3.fromRGB(60, 60, 80),
+    TextColor = Color3.fromRGB(255, 255, 255),
+    DarkText = Color3.fromRGB(170, 170, 170),
+    Font = Enum.Font.FredokaOne
+}
+
+local Buttons_Hub = {
+    Size = 30,
+    TextSize = 14
+}
+
+local function Create(instance, name, parent)
+    local new = Instance.new(instance, parent)
+    new.Name = name or instance
+    return new
+end
+
+local function SetConfigs(Element, Props)
+    for Property, Value in pairs(Props) do
+        Element[Property] = Value
+    end
+    return Element
+end
+
+local function Corner(parent, radius)
+    local new = Create("UICorner", "Corner", parent)
+    new.CornerRadius = radius or Configs_HUB.Corner
+    return new
+end
+
+local function Stroke(parent, Colorstk, stkmode)
+    local new = Create("UIStroke", "Stroke", parent)
+    new.ApplyStrokeMode = stkmode or "Border"
+    new.Color = Colorstk or Configs_HUB.Stroke
+    new.Thickness = 1
+    return new
+end
+
+local ScreenGui = Create("ScreenGui", "REDz HUB IMPROVED", CoreGui)
+
+-- Remove UI antiga se existir
+local ScreenFind = CoreGui:FindFirstChild(ScreenGui.Name)
+if ScreenFind and ScreenFind ~= ScreenGui then
+    ScreenFind:Destroy()
+end
+
+local Menu_Notifi = SetConfigs(Create("Frame", "Notificações", ScreenGui), {
+    Size = UDim2.new(0, 300, 1, 0),
+    Position = UDim2.new(1, -20, 0, 20),
+    AnchorPoint = Vector2.new(1, 0),
+    BackgroundTransparency = 1
+})
+
+local ListLayout_Notifi = SetConfigs(Create("UIListLayout", "ListLayout", Menu_Notifi), {
+    Padding = UDim.new(0, 10),
+    VerticalAlignment = "Bottom",
+    HorizontalAlignment = "Right"
+})
+
+function MakeNotifi(Configs)
+    local Title = Configs.Title or "REDz HUB"
+    local text = Configs.Text or "Notificação"
+    local time = Configs.Time or 5
+
+    local FrameContainer = SetConfigs(Create("Frame", "Frame", Menu_Notifi), {
+        Size = UDim2.new(0, 250, 0, 70),
+        BackgroundColor3 = Configs_HUB.Hub,
+        BackgroundTransparency = 0.1
+    })
+    Corner(FrameContainer)
+    Stroke(FrameContainer)
+    
+    -- Gradiente suave na notificação
+    local NotifGradient = Create("UIGradient", "Gradient", FrameContainer)
+    NotifGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 40)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 25))
     }
-}
+    NotifGradient.Rotation = 45
 
-local State = {
-    Running = false,
-    LastClickTime = 0,
-    IsResetting = false
-}
+    local TextLabel = SetConfigs(Create("TextLabel", "Title", FrameContainer), {
+        Size = UDim2.new(1, -30, 0, 25),
+        Font = Configs_HUB.Font,
+        BackgroundTransparency = 1,
+        Text = Title,
+        TextSize = 18,
+        Position = UDim2.new(0, 10, 0, 5),
+        TextXAlignment = "Left",
+        TextColor3 = Configs_HUB.TextColor
+    })
 
--- // UTILITÁRIOS DE UI //
-local function CreateStroke(parent, color, thickness)
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = color or CONFIG.Colors.Inactive
-    stroke.Thickness = thickness or 1
-    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    stroke.Parent = parent
-    return stroke
-end
+    local TextDesc = SetConfigs(Create("TextLabel", "Text", FrameContainer), {
+        Size = UDim2.new(1, -10, 0, 35),
+        Position = UDim2.new(0, 10, 0, 30),
+        TextSize = 14,
+        TextColor3 = Configs_HUB.DarkText,
+        TextXAlignment = "Left",
+        Text = text,
+        Font = Enum.Font.SourceSansBold,
+        BackgroundTransparency = 1,
+        TextWrapped = true
+    })
 
-local function CreateCorner(parent, radius)
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, radius)
-    corner.Parent = parent
-    return corner
-end
+    -- Barra de tempo
+    local TimeBar = SetConfigs(Create("Frame", "TimeBar", FrameContainer), {
+        Size = UDim2.new(1, 0, 0, 2),
+        Position = UDim2.new(0, 0, 1, -2),
+        BackgroundColor3 = Color3.fromRGB(0, 255, 150),
+        BorderSizePixel = 0
+    })
+    Corner(TimeBar, UDim.new(0, 0))
 
-local function AnimateClick(obj)
-    TweenService:Create(obj, TweenInfo.new(0.1), {Size = UDim2.new(obj.Size.X.Scale, obj.Size.X.Offset - 2, obj.Size.Y.Scale, obj.Size.Y.Offset - 2)}):Play()
-    task.wait(0.1)
-    TweenService:Create(obj, TweenInfo.new(0.1), {Size = UDim2.new(obj.Size.X.Scale, obj.Size.X.Offset + 2, obj.Size.Y.Scale, obj.Size.Y.Offset + 2)}):Play()
-end
-
--- // CONSTRUÇÃO DA INTERFACE //
-if CoreGui:FindFirstChild("ProMinerExpert") then CoreGui.ProMinerExpert:Destroy() end
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ProMinerExpert"
-ScreenGui.Parent = CoreGui
-ScreenGui.IgnoreGuiInset = true
-
--- Main Frame (Glassmorphism inspired)
-local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 300, 0, 230) -- Aumentado para caber o seletor
-Main.Position = UDim2.new(0.5, -150, 0.4, 0)
-Main.BackgroundColor3 = CONFIG.Colors.Background
-Main.BorderSizePixel = 0
-Main.Active = true
-Main.Draggable = true
-Main.Parent = ScreenGui
-CreateCorner(Main, 14)
-CreateStroke(Main, CONFIG.Colors.Inactive, 1.5)
-
--- Header
-local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 40)
-Header.BackgroundTransparency = 1
-Header.Parent = Main
-
-local Title = Instance.new("TextLabel")
-Title.Text = "AUTO MINER <font color=\"rgb(0,220,130)\"><b>v3</b></font>"
-Title.RichText = true
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
-Title.TextColor3 = CONFIG.Colors.TextData
-Title.Size = UDim2.new(1, -20, 1, 0)
-Title.Position = UDim2.new(0, 15, 0, 0)
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.BackgroundTransparency = 1
-Title.Parent = Header
-
-local Divider = Instance.new("Frame")
-Divider.Size = UDim2.new(1, 0, 0, 1)
-Divider.Position = UDim2.new(0, 0, 0, 40)
-Divider.BackgroundColor3 = CONFIG.Colors.Inactive
-Divider.BorderSizePixel = 0
-Divider.Parent = Main
-
--- // SELETOR DE PÁ (NOVA FUNCIONALIDADE) //
-local ToolLabel = Instance.new("TextLabel")
-ToolLabel.Text = "SELECIONE A FERRAMENTA"
-ToolLabel.Font = Enum.Font.GothamMedium
-ToolLabel.TextSize = 10
-ToolLabel.TextColor3 = CONFIG.Colors.TextDesc
-ToolLabel.Size = UDim2.new(1, -30, 0, 15)
-ToolLabel.Position = UDim2.new(0, 15, 0, 50)
-ToolLabel.TextXAlignment = Enum.TextXAlignment.Left
-ToolLabel.BackgroundTransparency = 1
-ToolLabel.Parent = Main
-
-local ToolContainer = Instance.new("Frame")
-ToolContainer.Size = UDim2.new(1, -30, 0, 35)
-ToolContainer.Position = UDim2.new(0, 15, 0, 70)
-ToolContainer.BackgroundColor3 = CONFIG.Colors.Panel
-ToolContainer.Parent = Main
-CreateCorner(ToolContainer, 8)
-
-local BtnShovel1 = Instance.new("TextButton")
-BtnShovel1.Name = "Shovel1"
-BtnShovel1.Size = UDim2.new(0.5, -2, 1, -4)
-BtnShovel1.Position = UDim2.new(0, 2, 0, 2)
-BtnShovel1.BackgroundColor3 = CONFIG.Colors.Accent -- Começa selecionado
-BtnShovel1.Text = "SHOVEL 1"
-BtnShovel1.Font = Enum.Font.GothamBold
-BtnShovel1.TextSize = 12
-BtnShovel1.TextColor3 = CONFIG.Colors.Background
-BtnShovel1.Parent = ToolContainer
-CreateCorner(BtnShovel1, 6)
-
-local BtnShovel2 = Instance.new("TextButton")
-BtnShovel2.Name = "Shovel2"
-BtnShovel2.Size = UDim2.new(0.5, -2, 1, -4)
-BtnShovel2.Position = UDim2.new(0.5, 0, 0, 2)
-BtnShovel2.BackgroundColor3 = Color3.new(0,0,0)
-BtnShovel2.BackgroundTransparency = 1
-BtnShovel2.Text = "SHOVEL 2"
-BtnShovel2.Font = Enum.Font.GothamBold
-BtnShovel2.TextSize = 12
-BtnShovel2.TextColor3 = CONFIG.Colors.TextDesc
-BtnShovel2.Parent = ToolContainer
-CreateCorner(BtnShovel2, 6)
-
--- // FUNÇÃO DE SELEÇÃO VISUAL //
-local function UpdateToolSelection(selectedBtn, otherBtn, toolName)
-    CONFIG.SelectedTool = toolName
+    -- Animação de Entrada
+    FrameContainer.Position = UDim2.new(1, 300, 0, 0)
+    TweenService:Create(FrameContainer, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {Position = UDim2.new(0, 0, 0, 0)}):Play()
     
-    -- Animação do botão selecionado
-    TweenService:Create(selectedBtn, TweenInfo.new(0.3), {BackgroundColor3 = CONFIG.Colors.Accent, BackgroundTransparency = 0, TextColor3 = CONFIG.Colors.Background}):Play()
-    
-    -- Animação do botão desmarcado
-    TweenService:Create(otherBtn, TweenInfo.new(0.3), {BackgroundColor3 = Color3.new(0,0,0), BackgroundTransparency = 1, TextColor3 = CONFIG.Colors.TextDesc}):Play()
-    
-    AnimateClick(selectedBtn)
-end
+    -- Animação da Barra
+    TweenService:Create(TimeBar, TweenInfo.new(time, Enum.EasingStyle.Linear), {Size = UDim2.new(0, 0, 0, 2)}):Play()
 
-BtnShovel1.MouseButton1Click:Connect(function() UpdateToolSelection(BtnShovel1, BtnShovel2, "Shovel1") end)
-BtnShovel2.MouseButton1Click:Connect(function() UpdateToolSelection(BtnShovel2, BtnShovel1, "Shovel2") end)
-
-
--- // STATUS E BOTÃO DE START //
-local StatusContainer = Instance.new("Frame")
-StatusContainer.Size = UDim2.new(1, -30, 0, 30)
-StatusContainer.Position = UDim2.new(0, 15, 0, 120)
-StatusContainer.BackgroundColor3 = CONFIG.Colors.Panel
-StatusContainer.Parent = Main
-CreateCorner(StatusContainer, 6)
-
-local StatusDot = Instance.new("Frame")
-StatusDot.Size = UDim2.new(0, 8, 0, 8)
-StatusDot.Position = UDim2.new(0, 10, 0.5, -4)
-StatusDot.BackgroundColor3 = CONFIG.Colors.Inactive
-StatusDot.Parent = StatusContainer
-CreateCorner(StatusDot, 10)
-
-local StatusText = Instance.new("TextLabel")
-StatusText.Size = UDim2.new(1, -30, 1, 0)
-StatusText.Position = UDim2.new(0, 25, 0, 0)
-StatusText.BackgroundTransparency = 1
-StatusText.Text = "Sistema Aguardando..."
-StatusText.TextColor3 = CONFIG.Colors.TextDesc
-StatusText.Font = Enum.Font.Gotham
-StatusText.TextSize = 12
-StatusText.TextXAlignment = Enum.TextXAlignment.Left
-StatusText.Parent = StatusContainer
-
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Size = UDim2.new(1, -30, 0, 45)
-ToggleBtn.Position = UDim2.new(0, 15, 0, 165)
-ToggleBtn.BackgroundColor3 = CONFIG.Colors.Inactive
-ToggleBtn.Text = "DESLIGADO"
-ToggleBtn.Font = Enum.Font.GothamBlack
-ToggleBtn.TextSize = 14
-ToggleBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
-ToggleBtn.Parent = Main
-CreateCorner(ToggleBtn, 8)
-
--- // LÓGICA DE AUTOMATION //
-
-local function SetStatus(text, type)
-    StatusText.Text = text
-    local color = CONFIG.Colors.TextDesc
-    local dotColor = CONFIG.Colors.Inactive
-    
-    if type == "Active" then
-        color = CONFIG.Colors.Accent
-        dotColor = CONFIG.Colors.Accent
-    elseif type == "Error" then
-        color = CONFIG.Colors.Error
-        dotColor = CONFIG.Colors.Error
-    end
-    
-    TweenService:Create(StatusText, TweenInfo.new(0.3), {TextColor3 = color}):Play()
-    TweenService:Create(StatusDot, TweenInfo.new(0.3), {BackgroundColor3 = dotColor}):Play()
-end
-
-local function EquipSelectedTool()
-    local char = LocalPlayer.Character
-    local backpack = LocalPlayer:WaitForChild("Backpack")
-    
-    if not char then return end
-
-    -- 1. Verifica se a ferramenta atual já é a correta
-    local currentTool = char:FindFirstChildOfClass("Tool")
-    if currentTool and currentTool.Name == CONFIG.SelectedTool then
-        return -- Já está segurando a certa
-    end
-    
-    -- 2. Se estiver segurando a errada, desequipa
-    if currentTool and currentTool.Name ~= CONFIG.SelectedTool then
-        currentTool.Parent = backpack
-    end
-    
-    -- 3. Equipa a correta
-    local targetTool = backpack:FindFirstChild(CONFIG.SelectedTool)
-    if targetTool then
-        targetTool.Parent = char
-    else
-        SetStatus("Ferramenta " .. CONFIG.SelectedTool .. " não encontrada!", "Error")
-    end
-end
-
-local function Click(x, y)
-    VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
-    task.wait(0.05)
-    VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
-end
-
--- Loop de Mineração
-task.spawn(function()
-    while true do
-        if State.Running then
-            -- Garante que a ferramenta certa está equipada CONSTANTEMENTE
-            EquipSelectedTool()
-            
-            local TargetGUI = PlayerGui:GetChildren()[CONFIG.GuiIndex]
-            
-            if TargetGUI then
-                local Movimento = TargetGUI:FindFirstChild("Movimento", true)
-                local WinFrame = TargetGUI:FindFirstChild("WinFrame", true)
-                local PontoFrame = TargetGUI:FindFirstChild("PontoFrame", true)
-
-                if PontoFrame then
-                    local points = 0
-                    for _, v in pairs(PontoFrame:GetChildren()) do
-                        if v:IsA("GuiObject") and v.Visible then points += 1 end
-                    end
-                    
-                    if points >= 5 and not State.IsResetting then
-                        State.IsResetting = true
-                        SetStatus("Coletando Recompensas...", "Active")
-                        task.wait(CONFIG.ResetWaitTime)
-                        
-                        -- Reset Click
-                        local vp = workspace.CurrentCamera.ViewportSize
-                        Click(vp.X/2, vp.Y/2)
-                        
-                        State.IsResetting = false
-                        SetStatus("Reiniciando Ciclo", "Active")
-                        task.wait(0.5)
-                    end
-                end
-
-                if Movimento and WinFrame and not State.IsResetting then
-                    if tick() - State.LastClickTime >= CONFIG.ClickCooldown then
-                        local mPos = Movimento.AbsolutePosition.X + (Movimento.AbsoluteSize.X / 2)
-                        local wStart = WinFrame.AbsolutePosition.X
-                        local wEnd = wStart + WinFrame.AbsoluteSize.X
-                        
-                        if mPos >= wStart and mPos <= wEnd then
-                            Click(Movimento.AbsolutePosition.X + (Movimento.AbsoluteSize.X/2), Movimento.AbsolutePosition.Y)
-                            State.LastClickTime = tick()
-                            SetStatus("ACERTO! AGUARDANDO...", "Active")
-                        else
-                            SetStatus("Calculando Tempo...", "Active")
-                        end
-                    end
-                end
-            else
-                SetStatus("GUI do Jogo não detectada!", "Error")
-            end
-        else
-            -- Quando parado
-            task.wait(0.5)
+    task.delay(time, function()
+        if FrameContainer then
+            local tweenOut = TweenService:Create(FrameContainer, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Position = UDim2.new(1, 300, 0, 0)})
+            tweenOut:Play()
+            tweenOut.Completed:Wait()
+            FrameContainer:Destroy()
         end
-        RunService.RenderStepped:Wait()
-    end
+    end)
+end
+
+-- Janela Principal
+local Menu = SetConfigs(Create("Frame", "Menu Inicial", ScreenGui), {
+    Size = UDim2.new(0, 500, 0, 300),
+    BackgroundColor3 = Configs_HUB.Hub,
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    Active = true,
+    Draggable = true,
+    ClipsDescendants = true
+})
+Corner(Menu)
+Stroke(Menu, Color3.fromRGB(50,50,70))
+
+-- Gradiente Principal do Menu
+local MainGradient = Create("UIGradient", "MainGradient", Menu)
+MainGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 35)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 20))
+}
+MainGradient.Rotation = 45
+
+local TopBar = SetConfigs(Create("Frame", "Top Bar", Menu), {
+    Size = UDim2.new(1, 0, 0, 40),
+    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+    BackgroundTransparency = 1
+})
+
+local Title = SetConfigs(Create("TextLabel", "Title", TopBar), {
+    Text = "REDz HUB",
+    BackgroundTransparency = 1,
+    TextColor3 = Configs_HUB.TextColor,
+    TextSize = 22,
+    Position = UDim2.new(0, 20, 0, 0),
+    Size = UDim2.new(1, -100, 1, 0),
+    Font = Configs_HUB.Font,
+    TextXAlignment = "Left"
+})
+
+-- Separador
+local Separator = SetConfigs(Create("Frame", "Sep", TopBar), {
+    Size = UDim2.new(1, 0, 0, 1),
+    Position = UDim2.new(0, 0, 1, 0),
+    BackgroundColor3 = Configs_HUB.Stroke,
+    BorderSizePixel = 0
+})
+
+local CloseBTN = SetConfigs(Create("TextButton", "Close", TopBar), {
+    Size = UDim2.new(0, 40, 0, 40),
+    Position = UDim2.new(1, -40, 0, 0),
+    Text = "X",
+    TextSize = 20,
+    TextColor3 = Color3.fromRGB(255, 100, 100),
+    BackgroundTransparency = 1,
+    Font = Configs_HUB.Font
+})
+
+CloseBTN.MouseButton1Click:Connect(function()
+    TweenService:Create(Menu, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+    task.wait(0.3)
+    ScreenGui:Destroy()
 end)
 
--- // EVENTO DO BOTÃO PRINCIPAL //
-ToggleBtn.MouseButton1Click:Connect(function()
-    State.Running = not State.Running
-    AnimateClick(ToggleBtn)
+local ScrollTab = SetConfigs(Create("ScrollingFrame", "ScrollBar", Menu), {
+    Size = UDim2.new(0, 140, 1, -45),
+    Position = UDim2.new(0, 0, 0, 45),
+    CanvasSize = UDim2.new(0, 0, 0, 0),
+    BackgroundTransparency = 1,
+    ScrollingDirection = "Y",
+    AutomaticCanvasSize = "Y",
+    ScrollBarThickness = 2,
+    ScrollBarImageColor3 = Configs_HUB.Stroke
+})
+
+local ListLayout_Tabs = SetConfigs(Create("UIListLayout", "ListLayout", ScrollTab), {
+    Padding = UDim.new(0, 5),
+    HorizontalAlignment = Enum.HorizontalAlignment.Center
+})
+SetConfigs(Create("UIPadding", "Pad", ScrollTab), {
+    PaddingTop = UDim.new(0, 10)
+})
+
+local Containers = SetConfigs(Create("Frame", "Containers", Menu), {
+    Size = UDim2.new(1, -150, 1, -45),
+    Position = UDim2.new(0, 150, 0, 45),
+    BackgroundTransparency = 1
+})
+
+-- Divisória Vertical
+local V_Sep = SetConfigs(Create("Frame", "VSep", Menu), {
+    Size = UDim2.new(0, 1, 1, -45),
+    Position = UDim2.new(0, 145, 0, 45),
+    BackgroundColor3 = Configs_HUB.Stroke,
+    BorderSizePixel = 0
+})
+
+function AddInfo(Configs)
+    Title.Text = Configs.Title or "REDz HUB"
+end
+
+function NewTab(Configs)
+    local TabNameStr = Configs.Name or "Tab"
     
-    if State.Running then
-        TweenService:Create(ToggleBtn, TweenInfo.new(0.3), {BackgroundColor3 = CONFIG.Colors.Accent, TextColor3 = CONFIG.Colors.Background}):Play()
-        ToggleBtn.Text = "ATIVO - FARMANDO"
-        SetStatus("Iniciando scripts...", "Active")
-    else
-        TweenService:Create(ToggleBtn, TweenInfo.new(0.3), {BackgroundColor3 = CONFIG.Colors.Inactive, TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
-        ToggleBtn.Text = "DESLIGADO"
-        SetStatus("Sistema Pausado", "Normal")
+    local TabButton = SetConfigs(Create("TextButton", "TabBtn", ScrollTab), {
+        Size = UDim2.new(0, 120, 0, 30),
+        BackgroundColor3 = Configs_HUB.Hub,
+        BackgroundTransparency = 1,
+        Text = "",
+        AutoButtonColor = false
+    })
+    Corner(TabButton, UDim.new(0, 6))
+
+    local TabTitle = SetConfigs(Create("TextLabel", "Title", TabButton), {
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = TabNameStr,
+        TextColor3 = Configs_HUB.DarkText,
+        Font = Enum.Font.GothamBold,
+        TextSize = 14,
+        BackgroundTransparency = 1
+    })
+
+    local Container = SetConfigs(Create("ScrollingFrame", TabNameStr, Containers), {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Visible = false,
+        ScrollBarThickness = 2,
+        AutomaticCanvasSize = "Y",
+        CanvasSize = UDim2.new(0,0,0,0)
+    })
+    SetConfigs(Create("UIListLayout", "Layout", Container), { Padding = UDim.new(0, 6), HorizontalAlignment = "Center" })
+    SetConfigs(Create("UIPadding", "Pad", Container), { PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10) })
+
+    -- Lógica de Seleção de Aba
+    TabButton.MouseButton1Click:Connect(function()
+        for _, v in pairs(Containers:GetChildren()) do
+            if v:IsA("ScrollingFrame") then v.Visible = false end
+        end
+        Container.Visible = true
+
+        for _, v in pairs(ScrollTab:GetChildren()) do
+            if v:IsA("TextButton") then
+                TweenService:Create(v.Title, TweenInfo.new(0.3), {TextColor3 = Configs_HUB.DarkText}):Play()
+            end
+        end
+        TweenService:Create(TabTitle, TweenInfo.new(0.3), {TextColor3 = Configs_HUB.TextColor}):Play()
+    end)
+
+    -- Selecionar a primeira aba automaticamente
+    if #ScrollTab:GetChildren() == 2 then -- 1 é UIListLayout, 2 é o primeiro botão
+        Container.Visible = true
+        TabTitle.TextColor3 = Configs_HUB.TextColor
+    end
+
+    return Container
+end
+
+function AddToggle(parent, Configs)
+    local name = Configs.Name or "Toggle"
+    local Default = Configs.Default or false
+    local Callback = Configs.Callback or function() end
+    
+    local MainFrame = SetConfigs(Create("Frame", "ToggleFrame", parent), {
+        Size = UDim2.new(0.95, 0, 0, 35),
+        BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    })
+    Corner(MainFrame, UDim.new(0, 6))
+    Stroke(MainFrame, Configs_HUB.Stroke)
+
+    local Label = SetConfigs(Create("TextLabel", "Label", MainFrame), {
+        Size = UDim2.new(1, -50, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0),
+        Text = name,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 14,
+        TextColor3 = Configs_HUB.TextColor,
+        TextXAlignment = "Left",
+        BackgroundTransparency = 1
+    })
+
+    local Toggler = SetConfigs(Create("TextButton", "Toggler", MainFrame), {
+        Size = UDim2.new(0, 40, 0, 20),
+        Position = UDim2.new(1, -10, 0.5, 0),
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundColor3 = Color3.fromRGB(50, 50, 60),
+        Text = ""
+    })
+    Corner(Toggler, UDim.new(1, 0))
+
+    local Circle = SetConfigs(Create("Frame", "Circle", Toggler), {
+        Size = UDim2.new(0, 16, 0, 16),
+        Position = UDim2.new(0, 2, 0.5, 0),
+        AnchorPoint = Vector2.new(0, 0.5),
+        BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    })
+    Corner(Circle, UDim.new(1, 0))
+
+    local state = Default
+    
+    local function Update()
+        if state then
+            TweenService:Create(Toggler, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 255, 100)}):Play()
+            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(1, -18, 0.5, 0)}):Play()
+        else
+            TweenService:Create(Toggler, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 60)}):Play()
+            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, 0)}):Play()
+        end
+        Callback(state)
+    end
+    
+    Update() -- Define estado inicial
+
+    Toggler.MouseButton1Click:Connect(function()
+        state = not state
+        Update()
+    end)
+    -- Clicar no frame inteiro também ativa
+    local InvisibleBtn = Create("TextButton", "Inv", MainFrame)
+    InvisibleBtn.Size = UDim2.new(1, -50, 1, 0)
+    InvisibleBtn.BackgroundTransparency = 1
+    InvisibleBtn.Text = ""
+    InvisibleBtn.MouseButton1Click:Connect(function()
+        state = not state
+        Update()
+    end)
+end
+
+function AddButton(parent, Configs)
+    local name = Configs.Name or "Button"
+    local Callback = Configs.Callback or function() end
+
+    local Btn = SetConfigs(Create("TextButton", "Button", parent), {
+        Size = UDim2.new(0.95, 0, 0, 35),
+        BackgroundColor3 = Color3.fromRGB(30, 30, 40),
+        Text = "",
+        AutoButtonColor = false
+    })
+    Corner(Btn, UDim.new(0, 6))
+    Stroke(Btn, Configs_HUB.Stroke)
+
+    local Label = SetConfigs(Create("TextLabel", "Label", Btn), {
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = name,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 14,
+        TextColor3 = Configs_HUB.TextColor,
+        BackgroundTransparency = 1
+    })
+
+    Btn.MouseButton1Click:Connect(function()
+        TweenService:Create(Btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(50, 50, 70)}):Play()
+        task.wait(0.1)
+        TweenService:Create(Btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(30, 30, 40)}):Play()
+        Callback()
+    end)
+end
+
+function AddDropdown(parent, Configs)
+    local name = Configs.Name or "Dropdown"
+    local options = Configs.Options or {}
+    local default = Configs.Default or options[1]
+    local Callback = Configs.Callback or function() end
+
+    local DropFrame = SetConfigs(Create("Frame", "DropFrame", parent), {
+        Size = UDim2.new(0.95, 0, 0, 35),
+        BackgroundColor3 = Color3.fromRGB(30, 30, 40),
+        ClipsDescendants = true
+    })
+    Corner(DropFrame, UDim.new(0, 6))
+    Stroke(DropFrame, Configs_HUB.Stroke)
+
+    local Label = SetConfigs(Create("TextLabel", "Label", DropFrame), {
+        Size = UDim2.new(1, -30, 0, 35),
+        Position = UDim2.new(0, 10, 0, 0),
+        Text = name .. ": " .. tostring(default),
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 14,
+        TextColor3 = Configs_HUB.TextColor,
+        TextXAlignment = "Left",
+        BackgroundTransparency = 1
+    })
+
+    local Arrow = SetConfigs(Create("TextLabel", "Arrow", DropFrame), {
+        Size = UDim2.new(0, 30, 0, 35),
+        Position = UDim2.new(1, 0, 0, 0),
+        AnchorPoint = Vector2.new(1, 0),
+        Text = "v",
+        TextColor3 = Configs_HUB.DarkText,
+        Font = Enum.Font.FredokaOne,
+        BackgroundTransparency = 1,
+        TextSize = 16
+    })
+
+    local OptionList = SetConfigs(Create("ScrollingFrame", "List", DropFrame), {
+        Size = UDim2.new(1, -10, 0, 0), -- Altura dinâmica
+        Position = UDim2.new(0, 5, 0, 35),
+        BackgroundTransparency = 1,
+        ScrollBarThickness = 2
+    })
+    SetConfigs(Create("UIListLayout", "Layout", OptionList), { Padding = UDim.new(0, 2) })
+
+    local open = false
+    local contentHeight = math.min(#options * 25, 150)
+
+    local function Toggle()
+        open = not open
+        if open then
+            TweenService:Create(DropFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Size = UDim2.new(0.95, 0, 0, 35 + contentHeight + 5)}):Play()
+            TweenService:Create(Arrow, TweenInfo.new(0.3), {Rotation = 180}):Play()
+            OptionList.Size = UDim2.new(1, -10, 0, contentHeight)
+            OptionList.CanvasSize = UDim2.new(0, 0, 0, #options * 25)
+        else
+            TweenService:Create(DropFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Size = UDim2.new(0.95, 0, 0, 35)}):Play()
+            TweenService:Create(Arrow, TweenInfo.new(0.3), {Rotation = 0}):Play()
+        end
+    end
+
+    local Trigger = Create("TextButton", "Trigger", DropFrame)
+    Trigger.Size = UDim2.new(1, 0, 0, 35)
+    Trigger.BackgroundTransparency = 1
+    Trigger.Text = ""
+    Trigger.MouseButton1Click:Connect(Toggle)
+
+    for _, opt in ipairs(options) do
+        local OptBtn = SetConfigs(Create("TextButton", "Opt", OptionList), {
+            Size = UDim2.new(1, 0, 0, 25),
+            BackgroundColor3 = Color3.fromRGB(40, 40, 50),
+            Text = tostring(opt),
+            TextColor3 = Configs_HUB.DarkText,
+            Font = Enum.Font.Gotham,
+            TextSize = 13
+        })
+        Corner(OptBtn, UDim.new(0, 4))
+        
+        OptBtn.MouseButton1Click:Connect(function()
+            Callback(opt)
+            Label.Text = name .. ": " .. tostring(opt)
+            Toggle()
+        end)
+    end
+    
+    Callback(default) -- set init
+end
+
+-- ================= SERVICES DO USUÁRIO =================
+local DigControl = ReplicatedStorage:WaitForChild("DigControl")
+
+-- ================= VARS =================
+local AutoFarm = false
+local AutoSell = false
+local SelectedShovel = 1
+local AutoFarmSpeed = 2
+local WalkSpeedValue = 16
+
+local Digging = false
+local LastWalkSpeed = 16
+
+-- ================= CONFIGURAÇÃO DA UI DO USUÁRIO =================
+
+AddInfo({
+    Title = "EMANUELMIGRBLX : Auto Dig", -- NOME ALTERADO AQUI
+    Font = Enum.Font.FredokaOne
+})
+
+MakeNotifi({
+    Title = "EMANUELMIGRBLX", -- NOME ALTERADO AQUI
+    Text = "Script carregado com sucesso! UI Melhorada.",
+    Time = 4
+})
+
+local Tab = NewTab({Name = "Inicio"})
+local ConfigTab = NewTab({Name = "Config"})
+
+-- ================= INICIO =================
+AddToggle(Tab, {
+    Name = "Auto Farm",
+    Default = false,
+    Callback = function(v)
+        AutoFarm = v
+    end
+})
+
+AddToggle(Tab, {
+    Name = "Auto Sell",
+    Default = false,
+    Callback = function(v)
+        AutoSell = v
+    end
+})
+
+AddDropdown(Tab, {
+    Name = "Selecionar Shovel",
+    Options = {"1","2","3","4","5","6"},
+    Default = "1",
+    Callback = function(v)
+        SelectedShovel = tonumber(v)
+    end
+})
+
+AddDropdown(Tab, {
+    Name = "Velocidade Auto Farm (seg)",
+    Options = {"1","2","3","4","5","6","7","8","9","10"},
+    Default = "2",
+    Callback = function(v)
+        AutoFarmSpeed = tonumber(v)
+    end
+})
+
+-- ================= CONFIG =================
+AddDropdown(ConfigTab, {
+    Name = "Velocidade do Personagem",
+    Options = {"16","25","35","50","70","100"},
+    Default = "16",
+    Callback = function(v)
+        WalkSpeedValue = tonumber(v)
+    end
+})
+
+AddButton(ConfigTab, {
+    Name = "Rejoin Server",
+    Callback = function()
+        TeleportService:Teleport(game.PlaceId, LocalPlayer)
+    end
+})
+
+-- ================= FUNÇÕES DO GAME =================
+local function equipShovel()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+
+    local shovelName = "Shovel"..SelectedShovel
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    if not backpack then return nil end
+
+    local tool = backpack:FindFirstChild(shovelName) or char:FindFirstChild(shovelName)
+    if tool and tool.Parent ~= char then
+        tool.Parent = char
+    end
+    return tool
+end
+
+local function dig()
+    if Digging then return end
+    Digging = true
+
+    local tool = equipShovel()
+    if not tool then
+        Digging = false
+        return
+    end
+
+    DigControl:FireServer("start", tool, 0)
+    task.wait(1.2)
+
+    for i = 1, 5 do
+        if not AutoFarm then break end
+        DigControl:FireServer("click", tool)
+        task.wait(0.85)
+    end
+
+    DigControl:FireServer("finish", tool, 0)
+    Digging = false
+end
+
+-- ================= LOOP OTIMIZADO =================
+task.spawn(function()
+    while true do
+        if AutoFarm and not Digging then
+            dig()
+            task.wait(AutoFarmSpeed)
+        else
+            task.wait(0.4)
+        end
+
+        if AutoSell then
+            local sell = ReplicatedStorage:FindFirstChild("SellItem")
+            if sell then
+                sell:FireServer("ALL")
+            end
+        end
+
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum and hum.WalkSpeed ~= WalkSpeedValue then
+                hum.WalkSpeed = WalkSpeedValue
+                LastWalkSpeed = WalkSpeedValue
+            end
+        end
     end
 end)
